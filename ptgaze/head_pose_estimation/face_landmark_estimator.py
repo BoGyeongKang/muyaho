@@ -77,7 +77,6 @@ class LandmarkEstimator:
             predictions = []
         detected = []
         for bbox, landmarks in zip(bboxes, predictions):
-
             bbox = np.array(bbox, dtype=np.float).reshape(2, 2)
             detected.append(Face(bbox, landmarks))
         return detected

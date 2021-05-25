@@ -1,5 +1,4 @@
-from .common import (Camera, Eye, Face, FaceParts, FacePartsName, MODEL3D,
-                     Visualizer)
+from .common import (Camera, Eye, Face, FaceParts, FacePartsName, MODEL3D, Visualizer)
 from .config import get_default_config
 from .head_pose_estimation import HeadPoseNormalizer, LandmarkEstimator
 from .models import create_model
