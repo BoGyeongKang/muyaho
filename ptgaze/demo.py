@@ -36,25 +36,44 @@ class Demo:
         self.old_time = time.time()
         self.cheat = 0
 
-    def run(self, client_socket) -> None:
-        while True:
-            ok, frame = self.cap.read()
-            if not ok:
-                break
-            # Init cheat info
-            self.cheat = 0
-            # Detect face
-            undistorted = cv2.undistort(frame, self.gaze_estimator.camera.camera_matrix, self.gaze_estimator.camera.dist_coefficients)
-            self.visualizer.set_image(frame.copy())
-            faces = self.gaze_estimator.detect_faces(undistorted)
-            for face in faces:
-                self.gaze_estimator.estimate_gaze(undistorted, face)
-                self._calc_cheating(face)  # Calc cheat
-            if not (len(faces) > 0):  # face not found
-                self.cheat = 2
-            # Send data to server
-            self._send_data(client_socket)
-        self.cap.release()
+    def process(self, frame):
+        # Init cheat info
+        self.cheat = 0
+
+        # Detect face
+        undistorted = cv2.undistort(frame, self.gaze_estimator.camera.camera_matrix, self.gaze_estimator.camera.dist_coefficients)
+        self.visualizer.set_image(frame.copy())
+        faces = self.gaze_estimator.detect_faces(undistorted)
+        for face in faces:
+            self.gaze_estimator.estimate_gaze(undistorted, face)
+            self._calc_cheating(face)  # Calc cheat
+        if not (len(faces) > 0):  # face not found
+            self.cheat = 2
+
+        cheat = self.cheat
+        # img = self.visualizer.image
+
+        return cheat
+
+    # def run(self, client_socket) -> None:
+    #     while True:
+    #         ok, frame = self.cap.read()
+    #         if not ok:
+    #             break
+    #         # Init cheat info
+    #         self.cheat = 0
+    #         # Detect face
+    #         undistorted = cv2.undistort(frame, self.gaze_estimator.camera.camera_matrix, self.gaze_estimator.camera.dist_coefficients)
+    #         self.visualizer.set_image(frame.copy())
+    #         faces = self.gaze_estimator.detect_faces(undistorted)
+    #         for face in faces:
+    #             self.gaze_estimator.estimate_gaze(undistorted, face)
+    #             self._calc_cheating(face)  # Calc cheat
+    #         if not (len(faces) > 0):  # face not found
+    #             self.cheat = 2
+    #         # Send data to server
+    #         self._send_data(client_socket)
+    #     self.cap.release()
 
     def _calc_cheating(self, face: Face) -> None:
         if self.config.mode == GazeEstimationMethod.MPIIGaze.name:
