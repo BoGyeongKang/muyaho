@@ -1,5 +1,4 @@
 import argparse
-import logging
 import re
 import socket
 import sys
@@ -11,11 +10,7 @@ import numpy as np
 sys.path.insert(0, "./")
 sys.path.insert(0, "../")
 
-from ptgaze.demo import Demo
-from ptgaze import get_default_config
-from ptgaze.utils import update_default_config, update_config
-
-logger = logging.getLogger(__name__)
+from cheat_detector import CheatDetector
 
 
 def recvall(sock, count):
@@ -28,30 +23,29 @@ def recvall(sock, count):
     return buf
 
 
-def thread_send_webcam(server_socket, config):
+def thread_send_webcam(server_socket, args):
     print("USER : CANDIDATE")
-    ptgaze = Demo(config)  # 초기 실행시 모델 로드 때문에 여기서 불러옴
+    cheatDetector = CheatDetector(args)
     capture = cv2.VideoCapture(0)
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
 
     while True:
         ret, frame = capture.read()
-
-        if ret == False:
+        if not ret:
             continue
 
         result, imgencode = cv2.imencode('.jpg', frame, encode_param)
+        imgData = np.array(imgencode).tobytes()
 
-        data = np.array(imgencode)
-        stringData = data.tobytes()
-        cheatData = ptgaze.process(frame)
-        print(cheatData)
+        cheat_info = cheatDetector.process(frame)  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+        cheatData = bytes([cheat_info])
+
+        stringData = imgData + cheatData  # 이미지 데이터 뒤에 치트 정보 숫자 하나 꼽사리 끼겠습니다
 
         try:
             server_socket.send('1'.encode(encoding='ISO-8859-1'))
             server_socket.send(str(len(stringData)).ljust(16).encode(encoding='ISO-8859-1'))
-            server_socket.send(stringData)
-            server_socket.send(str(cheatData).encode(encoding='ISO-8859-1'))  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+            server_socket.send(stringData)  # stringData = imgData + cheatData
             server_socket.recv(1).decode(encoding='ISO-8859-1')
 
         except ConnectionResetError as e:
@@ -77,18 +71,19 @@ def thread_receive_webcam(server_socket):
 
             length = server_socket.recv(16).decode(encoding='ISO-8859-1')
             print('length : ', length)
-            stringData = recvall(server_socket, int(length))
-            cheatData = server_socket.recv(16).decode(encoding='ISO-8859-1')
-            server_socket.send('1'.encode(encoding='ISO-8859-1'))
-            data = np.frombuffer(stringData, dtype='uint8')
-            decimg = cv2.imdecode(data, 1)
 
-            # DEBUG
-            DEBUG = True
-            if int(cheatData) == 1 and DEBUG:
-                cv2.putText(decimg, 'CHEAT', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
-            elif int(cheatData) == 2 and DEBUG:
-                cv2.putText(decimg, 'No Face', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
+            stringData = recvall(server_socket, int(length))  # stringData = imgData + cheatData
+            server_socket.send('1'.encode(encoding='ISO-8859-1'))
+
+            imgData = np.frombuffer(stringData[:-1], dtype='uint8')
+            decimg = cv2.imdecode(imgData, 1)
+            cheatData = int(stringData[-1])  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+
+            if True:  # DEBUG
+                if cheatData == 1:
+                    cv2.putText(decimg, 'CHEAT', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
+                elif cheatData == 2:
+                    cv2.putText(decimg, 'No Face', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
 
             window_name = str(uid)
             x = int(re.findall("\d+", window_name)[-1])
@@ -114,19 +109,6 @@ def main():
     parser.add_argument('--host', type=str, default='192.168.219.100')
     parser.add_argument('--port', type=int, default=7777)
     args = parser.parse_args()
-
-    config = get_default_config()
-    if args.config:
-        config.merge_from_file(args.config)
-        if (args.device or args.camera):
-            raise RuntimeError('When using a config file, all the other commandline arguments are ignored.')
-        if config.demo.image_path and config.demo.video_path:
-            raise ValueError('Only one of config.demo.image_path or config.demo.video_path can be specified.')
-    else:
-        update_default_config(config, args)
-
-    update_config(config)
-    logger.info(config)
 
     host = args.host
     port = args.port
@@ -169,7 +151,7 @@ def main():
         receive_webcam_thread.join()
 
     else:
-        send_webcam_thread = threading.Thread(target=thread_send_webcam, args=(server_socket, config,))
+        send_webcam_thread = threading.Thread(target=thread_send_webcam, args=(server_socket, args,))
         send_webcam_thread.start()
         send_webcam_thread.join()
 

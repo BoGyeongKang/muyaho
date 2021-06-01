@@ -1,12 +1,10 @@
 import os
 import socket
-import cv2
-import datetime
-import numpy as np
 import threading
 from _thread import *
 
-video_path = 'C:/Users/Juhyun/Desktop/video/'
+import cv2
+import numpy as np
 
 video_path = os.path.expanduser('~/Desktop/video/')
 os.makedirs(video_path, exist_ok=True)
@@ -98,12 +96,11 @@ def thread_webcam(client_socket, addr):
                 break
 
             length = client_socket.recv(16).decode(encoding='ISO-8859-1')
-            stringData = recvall(client_socket, int(length))
-            cheatData = client_socket.recv(16).decode(encoding='ISO-8859-1')  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+            stringData = recvall(client_socket, int(length))  # stringData = imgData + cheatData
 
             client_socket.send('1'.encode(encoding='ISO-8859-1'))
 
-            data = np.frombuffer(stringData, dtype='uint8')
+            data = np.frombuffer(stringData[:-1], dtype='uint8')
             decimg = cv2.imdecode(data, 1)
             out.write(decimg)
             # cv2.imshow(str(tid), decimg)
@@ -111,8 +108,7 @@ def thread_webcam(client_socket, addr):
             lock.acquire()
             supervisor_socket.send(uid.encode(encoding='ISO-8859-1'))
             supervisor_socket.send(str(len(stringData)).ljust(16).encode(encoding='ISO-8859-1'))
-            supervisor_socket.send(stringData)
-            supervisor_socket.send(cheatData.encode(encoding='ISO-8859-1'))  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+            supervisor_socket.send(stringData)  # stringData = imgData + cheatData
             supervisor_socket.recv(1).decode(encoding='ISO-8859-1')
             lock.release()
 
