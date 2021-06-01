@@ -75,14 +75,15 @@ def thread_receive_webcam(server_socket):
             stringData = recvall(server_socket, int(length))  # stringData = imgData + cheatData
             server_socket.send('1'.encode(encoding='ISO-8859-1'))
 
-            imgData = np.frombuffer(stringData[:-1], dtype='uint8')
-            decimg = cv2.imdecode(imgData, 1)
-            cheatData = int(stringData[-1])  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+            imgData, cheatData = stringData[:-1], stringData[-1]
+            data = np.frombuffer(imgData, dtype='uint8')
+            decimg = cv2.imdecode(data, 1)
+            cheat_info = int(cheatData)  # Cheat info: 0 Normal 1 Cheat 2 NoFace
 
             if True:  # DEBUG
-                if cheatData == 1:
+                if cheat_info == 1:
                     cv2.putText(decimg, 'CHEAT', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
-                elif cheatData == 2:
+                elif cheat_info == 2:
                     cv2.putText(decimg, 'No Face', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
 
             window_name = str(uid)
