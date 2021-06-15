@@ -103,8 +103,6 @@ def thread_webcam(client_socket, addr):
             data = np.frombuffer(imgData, dtype='uint8')
             decimg = cv2.imdecode(data, 1)
             out.write(decimg)
-            # cheat_info = int(cheatData)  # Cheat info: 0 Normal 1 Cheat 2 NoFace
-            # cv2.imshow(str(tid), decimg)
 
             lock.acquire()
             supervisor_socket.send(uid.encode(encoding='ISO-8859-1'))
