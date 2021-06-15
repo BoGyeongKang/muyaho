@@ -44,7 +44,7 @@ class CheatDetector:
             self.gaze_estimator.estimate_gaze(undistorted, face)
             self._calc_cheating(face)  # Calc cheat
         if not (len(faces) > 0):  # face not found
-            self.cheat = 2
+            self.cheat = 5
 
         cheat = self.cheat
 
@@ -55,4 +55,14 @@ class CheatDetector:
             euler_angles = face.head_pose_rot.as_euler('XYZ', degrees=True)
             h_pitch, h_yaw, h_roll = face.change_coordinate_system(euler_angles)
             if not (MIN_PITCH <= h_pitch <= MAX_PITCH and MIN_YAW <= h_yaw <= MAX_YAW):
-                self.cheat = 1
+                if h_yaw < 0 :
+                    if h_pitch > 0:
+                        self.cheat = 1
+                    else:
+                        self.cheat = 2
+                else:
+                    if h_pitch > 0:
+                        self.cheat = 3
+                    else:
+                        self.cheat = 4
+

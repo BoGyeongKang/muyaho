@@ -37,7 +37,7 @@ def thread_send_webcam(server_socket, args):
         result, imgencode = cv2.imencode('.jpg', frame, encode_param)
         imgData = np.array(imgencode).tobytes()
 
-        cheat_info = cheatDetector.process(frame)  # Cheat info: 0 Normal 1 Cheat 2 NoFace
+        cheat_info = cheatDetector.process(frame)  # Cheat info: 0 Normal 1 CheatLeft 2 NoFace 3 CheatRight
         cheatData = bytes([cheat_info])
 
         stringData = imgData + cheatData  # 이미지 데이터 뒤에 치트 정보 숫자 하나 꼽사리 끼겠습니다
@@ -78,13 +78,20 @@ def thread_receive_webcam(server_socket):
             imgData, cheatData = stringData[:-1], stringData[-1]
             data = np.frombuffer(imgData, dtype='uint8')
             decimg = cv2.imdecode(data, 1)
+            decimg = cv2.flip(decimg, 1)
             cheat_info = int(cheatData)  # Cheat info: 0 Normal 1 Cheat 2 NoFace
 
             if True:  # DEBUG
                 if cheat_info == 1:
-                    cv2.putText(decimg, 'CHEAT', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
+                    cv2.putText(decimg, 'CHEAT : Upper Left', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
                 elif cheat_info == 2:
-                    cv2.putText(decimg, 'No Face', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 3, (0, 0, 255), 2, cv2.LINE_AA)
+                    cv2.putText(decimg, 'CHEAT : Lower Left', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                elif cheat_info == 3:
+                    cv2.putText(decimg, 'CHEAT : Upper Right', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                elif cheat_info == 4:
+                    cv2.putText(decimg, 'CHEAT : Lower Right', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
+                elif cheat_info == 5:
+                    cv2.putText(decimg, 'No Face', (decimg.shape[1] // 4, decimg.shape[0] // 4), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
             window_name = str(uid)
             x = int(re.findall("\d+", window_name)[-1])
@@ -107,7 +114,7 @@ def main():
     parser.add_argument('--face-detector', type=str, default='face_alignment_sfd', choices=['dlib', 'face_alignment_dlib', 'face_alignment_sfd'], help='The method used to detect faces and find face landmarks (default: \'dlib\')')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], help='Device used for model inference.')
     parser.add_argument('--camera', type=str, help='Camera calibration file. See https://github.com/hysts/pytorch_mpiigaze_demo/ptgaze/data/calib/sample_params.yaml')
-    parser.add_argument('--host', type=str, default='192.168.219.100')
+    parser.add_argument('--host', type=str, default='127.0.0.1')
     parser.add_argument('--port', type=int, default=7777)
     args = parser.parse_args()
 
