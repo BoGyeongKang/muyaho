@@ -14,21 +14,13 @@ class LandmarkEstimator:
         self.mode = config.face_detector.mode
         if self.mode == 'dlib':
             self.detector = dlib.get_frontal_face_detector()
-            self.predictor = dlib.shape_predictor(
-                config.face_detector.dlib.model)
+            self.predictor = dlib.shape_predictor(config.face_detector.dlib.model)
         elif self.mode == 'face_alignment_dlib':
             self.detector = dlib.get_frontal_face_detector()
-            self.predictor = face_alignment.FaceAlignment(
-                face_alignment.LandmarksType._2D,
-                face_detector='dlib',
-                flip_input=False,
-                device=config.device)
+            self.predictor = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, face_detector='dlib', flip_input=False, device=config.device)
         elif self.mode == 'face_alignment_sfd':
             self.detector = face_alignment.detection.sfd.sfd_detector.SFDDetector(device=config.device)
-            self.predictor = face_alignment.FaceAlignment(
-                face_alignment.LandmarksType._2D,
-                flip_input=False,
-                device=config.device)
+            self.predictor = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, flip_input=False, device=config.device)
         else:
             raise ValueError
 
