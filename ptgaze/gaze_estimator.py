@@ -28,20 +28,16 @@ class GazeEstimator:
         self._config = config
 
         self.camera = Camera(config.gaze_estimator.camera_params)
-        self._normalized_camera = Camera(
-            config.gaze_estimator.normalized_camera_params)
+        self._normalized_camera = Camera(config.gaze_estimator.normalized_camera_params)
 
         self._landmark_estimator = LandmarkEstimator(config)
-        self._head_pose_normalizer = HeadPoseNormalizer(
-            self.camera, self._normalized_camera,
-            self._config.gaze_estimator.normalized_camera_distance)
+        self._head_pose_normalizer = HeadPoseNormalizer(self.camera, self._normalized_camera, self._config.gaze_estimator.normalized_camera_distance)
         self._gaze_estimation_model = self._load_model()
         self._transform = create_transform(config)
 
     def _load_model(self) -> torch.nn.Module:
         model = create_model(self._config)
-        checkpoint = torch.load(self._config.gaze_estimator.checkpoint,
-                                map_location='cpu')
+        checkpoint = torch.load(self._config.gaze_estimator.checkpoint, map_location='cpu')
         model.load_state_dict(checkpoint['model'])
         model.to(torch.device(self._config.device))
         model.eval()
@@ -72,7 +68,7 @@ class GazeEstimator:
             image = eye.normalized_image
             normalized_head_pose = eye.normalized_head_rot2d
             if key == FacePartsName.REYE:
-                image = image[:, ::-1] #좌우반전
+                image = image[:, ::-1]
                 normalized_head_pose *= np.array([1, -1])
             image = self._transform(image)
             images.append(image)
